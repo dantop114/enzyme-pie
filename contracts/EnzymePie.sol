@@ -12,6 +12,7 @@ contract EnzymePie is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
     IComptroller public comptroller;
+    IERC20 public inputToken;
 
     event PoolJoin(address indexed account, uint256 amount);
     event PoolExit(address indexed account, uint256 amount);
@@ -20,9 +21,13 @@ contract EnzymePie is ERC20, Ownable {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _comptroller
+        address _comptroller,
+        address _inputToken
     ) ERC20(_name, _symbol) Ownable() {
         comptroller = IComptroller(_comptroller);
+        inputToken = IERC20(_inputToken);
+
+        inputToken.safeApprove(_comptroller, type(uint256).max);
     }
 
     function joinPie(uint256 amount, uint256 minShares) external {
@@ -73,8 +78,13 @@ contract EnzymePie is ERC20, Ownable {
     }
 
     function setComptroller(address _newComptroller) external onlyOwner {
-        emit ComptrollerChanged(address(comptroller), _newComptroller);
+        address _oldComptroller = address(comptroller);
+
+        inputToken.safeApprove(_oldComptroller, 0);
+        inputToken.safeApprove(_newComptroller, type(uint256).max);
 
         comptroller = IComptroller(_newComptroller);
+
+        emit ComptrollerChanged(_oldComptroller, _newComptroller);
     }
 }
